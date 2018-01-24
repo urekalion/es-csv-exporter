@@ -14,15 +14,16 @@ chrome.extension.sendMessage({}, function(response) {
     clearInterval(readyStateCheckInterval);
 
     var url = window.location.href;
-    if(url.indexOf("app/kibana") >= 0  || url.indexOf("#/discover") >= 0 || url.indexOf(":5601") >= 0){
 
+    if(url.indexOf("app/kibana") >= 0  || url.indexOf("#/discover") >= 0 || url.indexOf(":5601") >= 0){
+      console.log("app kibana test")
       var options = {
         fireOnAttributesModification: true,  // Defaults to false. Setting it to true would make arrive event fire on existing elements which start to satisfy selector after some modification in DOM attributes (an arrive event won't fire twice for a single element even if the option is true). If false, it'd only fire for newly created elements.
         onceOnly: false,                     // Defaults to false. Setting it to true would ensure that registered callbacks fire only once. No need to unbind the event if the attribute is set to true, it'll automatically unbind after firing once.
         existing: true                       // Defaults to false. Setting it to true would ensure that the registered callback is fired for the elements that already exists in the DOM and match the selector. If options.onceOnly is set, the callback is only called once with the first element matching the selector.
       };
 
-      document.arrive(".button-group",options, function() {
+      document.arrive(".kuiLocalMenu",options, function() {
         var alreadyExists = document.getElementById("elastic-csv-exporter");
         if(!alreadyExists)
           injectCSVExportButton();
@@ -100,10 +101,10 @@ function createElement(type, attributes, innerHTML){
 
   return elem;
 }
-
+;
 function createCSVButton(){
-  var csvInnerHTML = '<button title="Export to CSV" aria-haspopup="true" aria-expanded="false"  aria-label="Export CSV"> <p style="margin: 0;font-size: 12px;font-weight: 100;">CSV</p> </button>';
-  var csvElemAttributes = {"tooltip":"Export CSV", "tooltip-placement":"bottom", "tooltip-popup-delay":"400", "tooltip-append-to-body":"1", "text":"Export CSV", "placement":"bottom", "append-to-body":"1", "class":"ng-scope", "id":"elastic-csv-exporter"};
+  var csvInnerHTML = '<button class="kuiLocalMenuItem" title="Export to CSV" aria-haspopup="true" aria-expanded="false"  aria-label="Export CSV"> <p style="margin: 0;font-size: 12px;font-weight: 100;">CSV</p> </button>';
+  var csvElemAttributes = {"tooltip":"Export CSV", "tooltip-placement":"bottom", "tooltip-popup-delay":"400", "tooltip-append-to-body":"1", "text":"Export CSV", "placement":"bottom", "append-to-body":"1", "class":"ng-scope", "id":"elastic-csv-exporter"}
   var csvButton = createElement('span', csvElemAttributes, csvInnerHTML);
   csvButton.onclick = function(){
     injectMessageSlider();
@@ -113,36 +114,41 @@ function createCSVButton(){
 
 
 function createMessageSlider(){
-  var wrapperDiv = createElement('div', {"style": "padding:10px 5px; background-color:#656a76; width:100% !important;", "id":"csv-message-wrapper"});
-  var messageBox = createElement('div', {"style": "float:right; margin-top:10px; line-height:2.5em;", "id":"csv-message-box"});
-  wrapperDiv.appendChild(messageBox);
+  var wrapperDiv = createElement('div', {'id' : 'csv-message-wrapper', 'class' : 'kuiLocalDropdown'});
+
+  var CloseHTML = '<span class="kuiIcon fa-chevron-circle-up"></span>';
+  var close = createElement('button', {'class' : 'kuiLocalDropdownCloseButton', 'ng-click' : 'kbnTopNav.close()'}, CloseHTML);
+  close.onclick = function(){
+   closeMessageSlider();
+  };
+  wrapperDiv.appendChild(close);
+
+  var formDiv = createElement('form', {'class' : 'ng-pristine ng-valid'});
+  var messageBox = createElement('div', {'class' : 'kuiLocalDropdownTitle'});
+  wrapperDiv.appendChild(formDiv);
+  formDiv.appendChild(messageBox);
 
   var successText = "CSV Exporter: This will export only the visible query results.";
   var failureText = "Oops, CSV export failed.";
   messageBox.appendChild(createElement('span',null,successText));
+ 
 
+  var barSection = createElement('div', {'class' : 'kuiBarSection'});
+  formDiv.appendChild(barSection);
 
-  var copyToClipboardHTML = '<button title="Copy to clipboard" aria-expanded="true"  aria-label="Copy to clipboard" style="border: 1px solid #fff;margin-left: 10px;"><p style="margin: 0;font-size: 12px;font-weight:100;">Copy to clipboard</p></button>';
-  var copyToClipboard = createElement('span', {"title":"Copy to clipboard"}, copyToClipboardHTML);
+  var copyToClipboardHTML = '<span title="Copy To clipboard">Copy to clipboard</span>'
+  var copyToClipboard = createElement('button', {"class":"kuiButton kuiButton--primary"}, copyToClipboardHTML);
   copyToClipboard.onclick = function(){
     parseAndCopyToClipBoard();
   };
-  messageBox.appendChild(copyToClipboard);
+  barSection.appendChild(copyToClipboard);
 
-
-  var copyToDriveHTML = '<button aria-expanded="true" aria-label="Copy to Google Drive" style="border:1px solid #fff;margin-left: 10px;"><p style="margin: 0;font-size: 12px;font-weight:100;">Google Drive</p></button>';
-  var copyToDrive = createElement('span', {"title":"Copy to Google Drive"}, copyToDriveHTML);
+  var copyToDriveHTML = '<span title="Copy to Google Drive">Copy to Google Drive</span>'
+  var copyToDrive = createElement('button', {"class":"kuiButton kuiButton--primary"}, copyToDriveHTML);
   copyToDrive.onclick = function(){
     alert("Coming soon");
   };
-  messageBox.appendChild(copyToDrive);
-
-  var CloseHTML = '<button aria-expanded="true" aria-label="Close export slider"><p style="margin: 0;font-size: 12px;font-weight:100;">X</p></button>';
-  var close = createElement('span', {"title":"Close export slider"}, CloseHTML);
-  close.onclick = function(){
-   closeMessageSlider();
-  };
-  messageBox.appendChild(close);
+  barSection.appendChild(copyToDrive);
 
   return wrapperDiv;
 }
@@ -166,25 +172,33 @@ function injectMessageSlider(){
 }
 
 function getMessageSliderElement(){
-  var nav = document.getElementsByTagName("navbar")[0];
+  var nav = document.getElementsByTagName("kbn-top-nav")[0];
   if(!nav) {
-    nav = document.getElementsByClassName("localNav")[0];
+    nav = document.getElementsByClassName("kuiLocalDropdown")[0];
   }
   return nav;
 }
 
 
 function injectCSVExportButton() {
-  var navbar = document.getElementsByTagName("navbar")[0];
+  console.log("injectCSVExportButton")
+  var navbar = document.getElementsByTagName("kbn-top-nav")[0];
   var buttonGroup;
   if(navbar) {
-    buttonGroup = navbar.getElementsByClassName("button-group")[0];
+    buttonGroup = navbar.getElementsByClassName("kuiLocalMenu")[0];
   } else {
     buttonGroup = document.getElementsByClassName("localBreadcrumb")[0];
   }
   
   if(buttonGroup) {
-    var span = createCSVButton();
-    buttonGroup.appendChild(span);
+    var nav = getMessageSliderElement();
+    var wrapperDiv = document.getElementById("csv-message-wrapper");
+
+    if(nav && wrapperDiv)
+      nav.removeChild(wrapperDiv);
+    else {
+      var span = createCSVButton();
+      buttonGroup.appendChild(span);
+    }
   }
 }
